@@ -31,10 +31,10 @@ export default function Dashboard() {
     setError('');
     try {
       const res = await getTasks();
-      setTasks(res.data);
+      setTasks(res.data.tasks);
     } catch (err) {
       setError(
-        err.response?.data?.message || 'Failed to load tasks. Please try again.'
+        err.response?.data?.error || 'Failed to load tasks. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -76,37 +76,38 @@ export default function Dashboard() {
     setFormOpen(true);
   };
 
-  const handleFormSubmit = async (values) => {
-    setActionError('');
-    try {
-      if (editingTask) {
-        const res = await updateTask(editingTask.id, values);
-        setTasks((prev) =>
-          prev.map((t) => (t.id === editingTask.id ? res.data : t))
-        );
-      } else {
-        const res = await createTask(values);
-        setTasks((prev) => [res.data, ...prev]);
-      }
-      setFormOpen(false);
-    } catch (err) {
-      setActionError(
-        err.response?.data?.message || 'Failed to save task. Please try again.'
+const handleFormSubmit = async (values) => {
+  setActionError('');
+  try {
+    if (editingTask) {
+      const res = await updateTask(editingTask.id, values);
+      const updated = res.data.task; // unwrap
+      setTasks((prev) =>
+        prev.map((t) => (t.id === editingTask.id ? updated : t))
       );
+    } else {
+      const res = await createTask(values);
+      const created = res.data.task; // unwrap
+      setTasks((prev) => [created, ...prev]);
     }
-  };
+    setFormOpen(false);
+  } catch (err) {
+    setActionError(
+      err.response?.data?.error || 'Failed to save task. Please try again.'
+    );
+  }
+};
 
-  const handleToggleStatus = async (task) => {
-    const newStatus = task.status === 'TODO' ? 'DONE' : 'TODO';
-    try {
-      const res = await updateTask(task.id, { status: newStatus });
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
-    } catch (err) {
-      setError(
-        err.response?.data?.message || 'Failed to update status.'
-      );
-    }
-  };
+const handleToggleStatus = async (task) => {
+  const newStatus = task.status === 'TODO' ? 'DONE' : 'TODO';
+  try {
+    const res = await updateTask(task.id, { status: newStatus });
+    const updated = res.data.task; // unwrap
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+  } catch (err) {
+    setError(err.response?.data?.error || 'Failed to update status.');
+  }
+};
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -115,7 +116,7 @@ export default function Dashboard() {
       setTasks((prev) => prev.filter((t) => t.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete task.');
+      setError(err.response?.data?.error || 'Failed to delete task.');
       setDeleteTarget(null);
     }
   };
