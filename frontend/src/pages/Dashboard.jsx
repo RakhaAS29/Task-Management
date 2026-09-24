@@ -76,38 +76,38 @@ export default function Dashboard() {
     setFormOpen(true);
   };
 
-const handleFormSubmit = async (values) => {
-  setActionError('');
-  try {
-    if (editingTask) {
-      const res = await updateTask(editingTask.id, values);
-      const updated = res.data.task; // unwrap
-      setTasks((prev) =>
-        prev.map((t) => (t.id === editingTask.id ? updated : t))
+  const handleFormSubmit = async (values) => {
+    setActionError('');
+    try {
+      if (editingTask) {
+        const res = await updateTask(editingTask.id, values);
+        const updated = res.data.task; // unwrap
+        setTasks((prev) =>
+          prev.map((t) => (t.id === editingTask.id ? updated : t))
+        );
+      } else {
+        const res = await createTask(values);
+        const created = res.data.task; // unwrap
+        setTasks((prev) => [created, ...prev]);
+      }
+      setFormOpen(false);
+    } catch (err) {
+      setActionError(
+        err.response?.data?.error || 'Failed to save task. Please try again.'
       );
-    } else {
-      const res = await createTask(values);
-      const created = res.data.task; // unwrap
-      setTasks((prev) => [created, ...prev]);
     }
-    setFormOpen(false);
-  } catch (err) {
-    setActionError(
-      err.response?.data?.error || 'Failed to save task. Please try again.'
-    );
-  }
-};
+  };
 
-const handleToggleStatus = async (task) => {
-  const newStatus = task.status === 'TODO' ? 'DONE' : 'TODO';
-  try {
-    const res = await updateTask(task.id, { status: newStatus });
-    const updated = res.data.task; // unwrap
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
-  } catch (err) {
-    setError(err.response?.data?.error || 'Failed to update status.');
-  }
-};
+  const handleToggleStatus = async (task) => {
+    const newStatus = task.status === 'TODO' ? 'DONE' : 'TODO';
+    try {
+      const res = await updateTask(task.id, { status: newStatus });
+      const updated = res.data.task; // unwrap
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update status.');
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -122,7 +122,7 @@ const handleToggleStatus = async (task) => {
   };
 
   return (
-    <div className="dashboard">
+    <div className="dashboard-page">
       <header className="dashboard-header">
         <h1>Task Management</h1>
         <div className="dashboard-header-right">
@@ -131,66 +131,78 @@ const handleToggleStatus = async (task) => {
         </div>
       </header>
 
-      <div className="dashboard-toolbar">
-        <input
-          type="text"
-          placeholder="Search tasks..."
-          value={search}
-          onChange={(e) => handleSearchChange(e.target.value)}
-        />
-        <button onClick={openAddForm}>+ Add Task</button>
-      </div>
+      <div className="dashboard-content">
+        <div className="dashboard-card">
+          <h2 className="dashboard-card-title">Task List</h2>
+          <div className="dashboard-toolbar">
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+            <button onClick={openAddForm}>+ Add Task</button>
+          </div>
 
-      {error && <div className="error-message">{error}</div>}
+          {error && <div className="error-message">{error}</div>}
 
-      {loading ? (
-        <div className="loading">Loading tasks...</div>
-      ) : filteredTasks.length === 0 ? (
-        <div className="empty-state">
-          {search ? 'No tasks match your search.' : 'No tasks yet. Add one!'}
-        </div>
-      ) : (
-        <>
-          <ul className="task-list">
-            {paginatedTasks.map((task) => (
-              <li key={task.id} className={`task-item ${task.status.toLowerCase()}`}>
-                <div className="task-info">
-                  <h3>{task.title}</h3>
-                  {task.description && <p>{task.description}</p>}
-                  <span className="task-status-badge">{task.status}</span>
-                </div>
-                <div className="task-actions">
-                  <button onClick={() => handleToggleStatus(task)}>
-                    Mark as {task.status === 'TODO' ? 'Done' : 'Todo'}
-                  </button>
-                  <button onClick={() => openEditForm(task)}>Edit</button>
-                  <button onClick={() => setDeleteTarget(task)}>Delete</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Previous
-              </button>
-              <span>
-                Page {page} of {totalPages}
-              </span>
-              <button
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </button>
+          {loading ? (
+            <div className="loading">Loading tasks...</div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="empty-state">
+              {search ? 'No tasks match your search.' : 'No tasks yet. Add one!'}
             </div>
+          ) : (
+            <>
+              <ul className="task-list">
+                {paginatedTasks.map((task) => (
+                  <li key={task.id} className={`task-item ${task.status.toLowerCase()}`}>
+                    <div className="task-info">
+                      <h3>{task.title}</h3>
+                      {task.description && <p>{task.description}</p>}
+                      <span className="task-status-badge">{task.status}</span>
+                    </div>
+                    <div className="task-actions">
+                      <button
+                        className="btn-status"
+                        onClick={() => handleToggleStatus(task)}
+                      >
+                        Mark as {task.status === 'TODO' ? 'Done' : 'Todo'}
+                      </button>
+                      <button className="btn-edit" onClick={() => openEditForm(task)}>
+                        Edit
+                      </button>
+                      <button className="btn-delete" onClick={() => setDeleteTarget(task)}>
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {totalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    disabled={page === totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </div>
 
       {formOpen && (
         <TaskForm
